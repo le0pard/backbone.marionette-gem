@@ -10,7 +10,7 @@ The `Application` is meant to be instantiated directly, although you can extend
 it to add your own functionality.
 
 ```js
-MyApp = new Backbone.Marionette.Application();
+var MyApp = new Backbone.Marionette.Application();
 ```
 
 ## Documentation Index
@@ -127,7 +127,7 @@ The Event Aggregator is available through the `vent` property. `vent` is conveni
 pieces of your application as events occur.
 
 ```js
-MyApp = new Backbone.Marionette.Application();
+var MyApp = new Backbone.Marionette.Application();
 
 // Alert the user on the 'minutePassed' event
 MyApp.vent.on("minutePassed", function(someData){
@@ -145,7 +145,7 @@ window.setInterval(function() {
 Request Response is a means for any component to request information from another component without being tightly coupled. An instance of Request Response is available on the Application as the `reqres` property.
 
 ```js
-MyApp = new Backbone.Marionette.Application();
+var MyApp = new Backbone.Marionette.Application();
 
 // Set up a handler to return a todoList based on type
 MyApp.reqres.setHandler("todoList", function(type){
@@ -166,7 +166,7 @@ Commands are used to make any component tell another component to perform an act
 Note that the callback of a command is not meant to return a value.
 
 ```js
-MyApp = new Backbone.Marionette.Application();
+var MyApp = new Backbone.Marionette.Application();
 
 MyApp.model = new Backbone.Model();
 
@@ -199,8 +199,10 @@ window.app.vent;
 
 ## Regions And The Application Object
 
-Marionette's `Region` objects can be directly added to an application by
-calling the `addRegions` method.
+Application instances have an API that allow you to manage [Regions](https://github.com/marionettejs/backbone.marionette/blob/master/docs/marionette.region.md).
+These Regions are typically the means through which your views become attached to the `document`.
+
+You can create Regions through the `addRegions` method.
 
 There are three syntax forms for adding a region to an application object.
 
@@ -223,7 +225,7 @@ The second is to specify a custom region class, where the region class has
 already specified a selector:
 
 ```js
-MyCustomRegion = Marionette.Region.extend({
+var MyCustomRegion = Marionette.Region.extend({
   el: "#foo"
 });
 
@@ -238,7 +240,7 @@ The third method is to specify a custom region class, and a jQuery selector
 for this region instance, using an object literal:
 
 ```js
-MyCustomRegion = Marionette.Region.extend({});
+var MyCustomRegion = Marionette.Region.extend({});
 
 MyApp.addRegions({
 
@@ -283,4 +285,5 @@ MyApp.removeRegion('someRegion');
 Removing a region will properly empty it before removing it from the
 application object.
 
-For more information on regions, see [the region documentation](./marionette.region.md)
+For more information on regions, see [the region documentation](./marionette.region.md) Also, the API that Applications use to
+manage regions comes from the RegionManager Class, which is documented [over here](https://github.com/marionettejs/backbone.marionette/blob/master/docs/marionette.regionmanager.md).
