@@ -20,7 +20,7 @@ Marionette.Region = function(options) {
   this.$el = this.getEl(this.el);
 
   if (this.initialize) {
-    var args = Array.prototype.slice.apply(arguments);
+    var args = slice.apply(arguments);
     this.initialize.apply(this, args);
   }
 };
@@ -45,53 +45,41 @@ _.extend(Marionette.Region, {
   // }
   // ```
   //
-  buildRegion: function(regionConfig, defaultRegionClass) {
-    var regionIsString = _.isString(regionConfig);
-    var regionSelectorIsString = _.isString(regionConfig.selector);
-    var regionClassIsUndefined = _.isUndefined(regionConfig.regionClass);
-    var regionIsClass = _.isFunction(regionConfig);
-
-    if (!regionIsClass && !regionIsString && !regionSelectorIsString) {
-      throwError('Region must be specified as a Region class,' +
-        'a selector string or an object with selector property');
+  buildRegion: function(regionConfig, DefaultRegionClass) {
+    if (_.isString(regionConfig)) {
+      return this._buildRegionFromSelector(regionConfig, DefaultRegionClass);
     }
 
-    var selector, RegionClass;
-
-    // get the selector for the region
-
-    if (regionIsString) {
-      selector = regionConfig;
+    if (regionConfig.selector || regionConfig.el || regionConfig.regionClass) {
+      return this._buildRegionFromObject(regionConfig, DefaultRegionClass);
     }
 
-    if (regionConfig.selector) {
-      selector = regionConfig.selector;
-      delete regionConfig.selector;
+    if (_.isFunction(regionConfig)) {
+      return this._buildRegionFromRegionClass(regionConfig);
     }
 
-    // get the class for the region
+    throwError('Improper region configuration type. Please refer ' +
+      'to http://marionettejs.com/docs/marionette.region.html#region-configuration-types');
+  },
 
-    if (regionIsClass) {
-      RegionClass = regionConfig;
+  // Build the region from a string selector like '#foo-region'
+  _buildRegionFromSelector: function(selector, DefaultRegionClass) {
+    return new DefaultRegionClass({ el: selector });
+  },
+
+  // Build the region from a configuration object
+  // ```js
+  // { selector: '#foo', regionClass: FooRegion }
+  // ```
+  _buildRegionFromObject: function(regionConfig, DefaultRegionClass) {
+    var RegionClass = regionConfig.regionClass || DefaultRegionClass;
+    var options = _.omit(regionConfig, 'selector', 'regionClass');
+
+    if (regionConfig.selector && !options.el) {
+      options.el = regionConfig.selector;
     }
 
-    if (!regionIsClass && regionClassIsUndefined) {
-      RegionClass = defaultRegionClass;
-    }
-
-    if (regionConfig.regionClass) {
-      RegionClass = regionConfig.regionClass;
-      delete regionConfig.regionClass;
-    }
-
-    if (regionIsString || regionIsClass) {
-      regionConfig = {};
-    }
-
-    regionConfig.el = selector;
-
-    // build the region instance
-    var region = new RegionClass(regionConfig);
+    var region = new RegionClass(options);
 
     // override the `getEl` function if we have a parentEl
     // this must be overridden to ensure the selector is found
@@ -113,6 +101,11 @@ _.extend(Marionette.Region, {
     }
 
     return region;
+  },
+
+  // Build the region directly from a given `RegionClass`
+  _buildRegionFromRegionClass: function(RegionClass) {
+    return new RegionClass();
   }
 
 });
@@ -236,6 +229,7 @@ _.extend(Marionette.Region.prototype, Backbone.Events, {
 
     // Remove region pointer to the currentView
     delete this.currentView;
+    return this;
   },
 
   // call 'destroy' or 'remove', depending on which is found
@@ -256,6 +250,14 @@ _.extend(Marionette.Region.prototype, Backbone.Events, {
   // of the region.
   attachView: function(view) {
     this.currentView = view;
+    return this;
+  },
+
+  // Checks whether a view is currently present within
+  // the region. Returns `true` if there is and `false` if
+  // no view is present.
+  hasView: function() {
+    return !!this.currentView;
   },
 
   // Reset the region by destroying any existing view and
@@ -270,6 +272,7 @@ _.extend(Marionette.Region.prototype, Backbone.Events, {
     }
 
     delete this.$el;
+    return this;
   },
 
   // Proxy `getOption` to enable getting options from this or this.options by name.

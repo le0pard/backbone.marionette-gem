@@ -36,6 +36,11 @@ describe('region', function() {
       expect(this.customRegion.$el[0]).to.equal(this.el);
     });
 
+    it('should not have a view', function() {
+      expect(this.customRegion.hasView()).to.equal(false);
+      expect(this.optionRegion.hasView()).to.equal(false);
+    });
+
     it('should complain if the el passed in as an option is invalid', function() {
       expect(function() {
         Backbone.Marionette.Region({el: $("the-ghost-of-lechuck")[0]});
@@ -70,6 +75,10 @@ describe('region', function() {
         expect(function(){
           this.myRegion.show(new this.MyView());
         }.bind(this)).to.throw('An "el" #not-existed-region must exist in DOM');
+      });
+
+      it('should not have a view', function() {
+        expect(this.myRegion.hasView()).to.equal(false);
       });
     });
   });
@@ -119,11 +128,16 @@ describe('region', function() {
       this.view.on('before:show', this.viewBeforeShowSpy);
       this.view.on('show', this.viewShowSpy);
 
+      this.sinon.spy(this.myRegion, 'show');
       this.myRegion.show(this.view);
     });
 
     it('should render the view', function() {
       expect(this.view.render).to.have.been.called;
+    });
+
+    it('should have a view', function() {
+      expect(this.myRegion.hasView()).to.equal(true);
     });
 
     it('should set $el and el', function() {
@@ -186,6 +200,10 @@ describe('region', function() {
       expect(this.swapSpy.callCount).to.equal(0);
     });
 
+    it('should return the region', function() {
+      expect(this.myRegion.show).to.have.returned(this.myRegion);
+    });
+
     describe('and then showing a different view', function() {
       beforeEach(function() {
         this.view2 = new this.MyView();
@@ -215,6 +233,10 @@ describe('region', function() {
 
       it('should set "this" to the manager, from the swap event', function() {
         expect(this.swapSpy).to.have.been.calledOn(this.myRegion);
+      });
+
+      it('should stil have a view', function() {
+        expect(this.myRegion.hasView()).to.equal(true);
       });
     });
 
@@ -532,6 +554,7 @@ describe('region', function() {
       this.myRegion.on('empty', this.emptySpy);
       this.myRegion.show(this.view);
 
+      this.sinon.spy(this.myRegion, 'empty');
       this.myRegion.empty();
     });
 
@@ -565,6 +588,14 @@ describe('region', function() {
 
     it('should delete the current view reference', function() {
       expect(this.myRegion.currentView).to.be.undefined;
+    });
+
+    it('should return the region', function() {
+      expect(this.myRegion.empty).to.have.returned(this.myRegion);
+    });
+
+    it('should not have a view', function() {
+      expect(this.myRegion.hasView()).to.equal(false);
     });
   });
 
@@ -649,6 +680,7 @@ describe('region', function() {
         el: '#foo'
       });
 
+      this.sinon.spy(this.region, 'attachView');
       this.region.attachView(this.view);
     });
 
@@ -662,6 +694,10 @@ describe('region', function() {
 
     it('should not replace the existing html', function() {
       expect($(this.region.el).text()).to.equal('bar');
+    });
+
+    it('should return the region', function() {
+      expect(this.region.attachView).to.have.returned(this.region);
     });
   });
 
@@ -736,6 +772,7 @@ describe('region', function() {
 
       this.region._ensureElement();
 
+      this.sinon.spy(this.region, 'reset');
       this.region.reset();
     });
 
@@ -745,6 +782,10 @@ describe('region', function() {
 
     it('should empty any existing view', function() {
       expect(this.region.empty).to.have.been.called;
+    });
+
+    it('should return the region', function() {
+      expect(this.region.reset).to.have.returned(this.region);
     });
   });
 

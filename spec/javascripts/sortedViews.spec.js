@@ -32,6 +32,9 @@ describe('collection/composite view sorting', function() {
         collection: this.collection,
       });
 
+      this.sinon.spy(this.collectionView, 'resortView');
+      this.sinon.spy(this.compositeView, 'resortView');
+
       this.collectionView.render();
       this.compositeView.render();
     });
@@ -99,8 +102,6 @@ describe('collection/composite view sorting', function() {
         beforeEach(function() {
           this.model = new Backbone.Model({foo: 5, bar: 0});
           this.collection.add(this.model);
-          this.collectionView.render();
-          this.compositeView.render();
         });
 
         it('should add both models to the list', function() {
@@ -110,6 +111,11 @@ describe('collection/composite view sorting', function() {
         it('should have the order in the dom', function() {
           expect(this.collectionView.$el).to.have.$text('12345');
           expect(this.compositeView.$el).to.have.$text('12345');
+        });
+
+        it('should call resortViews', function() {
+          expect(this.collectionView.resortView).to.have.been.calledOnce;
+          expect(this.compositeView.resortView).to.have.been.calledOnce;
         });
       });
     });
@@ -156,6 +162,11 @@ describe('collection/composite view sorting', function() {
         it('should have the order in the dom', function() {
           expect(this.collectionView.$el).to.have.$text('321');
           expect(this.compositeView.$el).to.have.$text('321');
+        });
+
+        it('should call resortViews', function() {
+          expect(this.collectionView.resortView).to.have.been.calledOnce;
+          expect(this.compositeView.resortView).to.have.been.calledOnce;
         });
       });
 
