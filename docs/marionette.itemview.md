@@ -1,3 +1,5 @@
+## [View the new docs](http://marionettejs.com/docs/marionette.itemview.html)
+
 # Marionette.ItemView
 
 An `ItemView` is a view that represents a single item. That item may be a
@@ -28,8 +30,14 @@ will provide features such as `onShow` callbacks, etc. Please see
 
 ## ItemView render
 
-An item view has a `render` method built in to it, and uses the
-`Renderer` object to do the actual rendering.
+Unlike Backbone Views, all Marionette views come with a powerful render method.
+In fact, the primary differences between the views are the differences in their
+render methods. It goes without saying that it is unwise to override the `render`
+method of any Marionette view. Instead, you should use the [`onBeforeRender` and `onRender` callbacks](#events-and-callback-methods)
+to layer in additional functionality to the rendering of your view.
+
+The `ItemView` defers to the `Marionette.Renderer` object to do the actual
+rendering of the template.
 
 The item view instance is passed as the third argument to the
 `Renderer` object's `render` method, which is useful in custom
@@ -153,6 +161,8 @@ view.render();
 view.ui.paragraph.text();        // returns 'Hello World'
 view.ui.button.trigger('click'); // logs 'I clicked the button!'
 ```
+
+Another use case is when you want to attach a `Marionette.ItemView` to a SVG graphic or canvas element, to provide a uniform view layer interface to non-standard DOM nodes. By not having a template this allows you to also use a view on pre-rendered DOM nodes, such as complex graphic elements.
 
 ## Events and Callback Methods
 

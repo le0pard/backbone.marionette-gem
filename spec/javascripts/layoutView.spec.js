@@ -12,11 +12,6 @@ describe('layoutView', function() {
       regions: {
         regionOne: '#regionOne',
         regionTwo: '#regionTwo'
-      },
-      initialize: function() {
-        if (this.model) {
-          this.listenTo(this.model, 'change', this.render);
-        }
       }
     });
 
@@ -37,12 +32,23 @@ describe('layoutView', function() {
 
   describe('on instantiation', function() {
     beforeEach(function() {
-      this.layoutViewManager = new this.LayoutView();
+      var suite = this;
+      this.LayoutViewInitialize = this.LayoutView.extend({
+        initialize: function() {
+          suite.regionOne = this.regionOne;
+        }
+      });
+
+      this.layoutViewManager = new this.LayoutViewInitialize();
     });
 
     it('should instantiate the specified region managers', function() {
       expect(this.layoutViewManager).to.have.property('regionOne');
       expect(this.layoutViewManager).to.have.property('regionTwo');
+    });
+
+    it('should instantiate the specified region before initialize', function() {
+      expect(this.regionOne).to.equal(this.layoutViewManager.regionOne);
     });
   });
 
@@ -84,7 +90,7 @@ describe('layoutView', function() {
       this.layoutViewManager = new this.LayoutViewCustomRegion();
     });
 
-    it('should instantiate specific regions with custom regions if speficied', function() {
+    it('should instantiate specific regions with custom regions if specified', function() {
       expect(this.layoutViewManager).to.have.property('regionOne');
       expect(this.layoutViewManager.regionOne).to.be.instanceof(this.CustomRegion1);
       expect(this.layoutViewManager).to.have.property('regionTwo');
@@ -217,7 +223,15 @@ describe('layoutView', function() {
 
   describe('when re-rendering an already rendered layoutView', function() {
     beforeEach(function() {
-      this.layoutView = new this.LayoutView({
+      this.LayoutViewBoundRender = this.LayoutView.extend({
+        initialize: function() {
+          if (this.model) {
+            this.listenTo(this.model, 'change', this.render);
+          }
+        }
+      });
+
+      this.layoutView = new this.LayoutViewBoundRender({
         model: new Backbone.Model()
       });
       this.layoutView.render();
@@ -276,7 +290,8 @@ describe('layoutView', function() {
     });
 
     it('should throw an error', function() {
-      expect(this.layoutView.render).to.throw('Cannot use a view thats already been destroyed.');
+      expect(this.layoutView.render).to.throw('View (cid: "' + this.layoutView.cid +
+          '") has already been destroyed and cannot be used.');
     });
   });
 
@@ -340,6 +355,26 @@ describe('layoutView', function() {
 
     it('should set custom region classes', function() {
       expect(this.CustomRegion).to.have.been.called;
+    });
+  });
+
+  describe('when defining region selectors using @ui. syntax', function() {
+    beforeEach(function() {
+      var UILayoutView = Backbone.Marionette.LayoutView.extend({
+        template: this.template,
+        regions: {
+          war: '@ui.war'
+        },
+        ui: {
+          war: '.craft'
+        }
+      });
+      this.layoutView = new UILayoutView();
+    });
+
+    it('should apply the relevant @ui. syntax selector', function() {
+      expect(this.layoutView.getRegion('war')).to.exist;
+      expect(this.layoutView.getRegion('war').$el.selector).to.equal('.craft');
     });
   });
 
@@ -419,4 +454,54 @@ describe('layoutView', function() {
       expect(this.regions.regionTwo).to.equal(this.layout.getRegion("regionTwo"));
     });
   });
+
+  describe('manipulating regions', function () {
+    beforeEach(function() {
+      this.beforeAddRegionSpy = this.sinon.spy();
+      this.addRegionSpy = this.sinon.spy();
+      this.beforeRegionRemoveSpy = this.sinon.spy();
+      this.removeRegionSpy = this.sinon.spy();
+
+      this.Layout = Marionette.LayoutView.extend({
+        template: false,
+        onBeforeAddRegion: this.beforeAddRegionSpy,
+        onAddRegion: this.addRegionSpy,
+        onBeforeRemoveRegion: this.beforeRegionRemoveSpy,
+        onRemoveRegion: this.removeRegionSpy
+      });
+
+      this.layout = new this.Layout();
+
+      this.regionName = 'myRegion';
+      this.layout.addRegion(this.regionName, '.region-selector');
+    });
+
+    it('should trigger correct region add events', function() {
+      expect(this.beforeAddRegionSpy)
+        .to.have.been.calledOnce
+        .and.calledOn(this.layout)
+        .and.calledWith(this.regionName);
+
+      expect(this.addRegionSpy)
+        .to.have.been.calledOnce
+        .and.calledOn(this.layout)
+        .and.calledWith(this.regionName);
+    });
+
+
+    it('should trigger correct region remove events', function() {
+      this.layout.removeRegion(this.regionName);
+
+      expect(this.beforeRegionRemoveSpy)
+        .to.have.been.calledOnce
+        .and.calledOn(this.layout)
+        .and.calledWith(this.regionName);
+
+      expect(this.removeRegionSpy)
+        .to.have.been.calledOnce
+        .and.calledOn(this.layout)
+        .and.calledWith(this.regionName);
+    });
+  });
+
 });

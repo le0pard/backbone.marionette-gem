@@ -14,22 +14,54 @@ describe('collectionview - emptyView', function() {
 
     this.EmptyCollectionView = Backbone.Marionette.CollectionView.extend({
       childView: this.ItemView,
-      emptyView: this.EmptyView
+      emptyView: this.EmptyView,
+
+      onBeforeRenderEmpty: function () {},
+      onRenderEmpty: function () {},
+      onBeforeRemoveEmpty: function () {},
+      onRemoveEmpty: function () {}
     });
   });
 
   describe('when rendering a collection view with an empty collection', function() {
     beforeEach(function() {
+      this.childRenderSpy = this.sinon.spy();
       this.collection = new Backbone.Collection();
-      this.collectionView = new this.EmptyCollectionView({
-        collection: this.collection
+      this.CollectionView = this.EmptyCollectionView.extend({
+        childEvents: {
+          'render': this.childRenderSpy
+        }
       });
+
+      this.collectionView = new this.CollectionView({
+        collection: this.collection,
+      });
+
+      this.beforeRenderSpy = this.sinon.spy(this.collectionView, 'onBeforeRenderEmpty');
+      this.renderSpy = this.sinon.spy(this.collectionView, 'onRenderEmpty');
 
       this.collectionView.render();
     });
 
     it('should append the html for the emptyView', function() {
       expect(this.collectionView.$el).to.have.$html('<span>empty</span>');
+    });
+
+    it('should emit emptyView events', function() {
+      expect(this.childRenderSpy)
+      .to.have.been.calledOnce;
+    });
+
+    it('should call "onBeforeRenderEmpty"', function() {
+      expect(this.beforeRenderSpy)
+        .to.have.been.calledOnce
+        .and.calledOn(this.collectionView);
+    });
+
+    it('should call "onRenderEmpty"', function() {
+      expect(this.renderSpy)
+        .to.have.been.calledOnce
+        .and.calledOn(this.collectionView);
     });
 
     it('should reference each of the rendered view items', function() {
@@ -39,11 +71,25 @@ describe('collectionview - emptyView', function() {
     describe('and then adding an item to the collection', function() {
       beforeEach(function() {
         this.destroySpy = this.sinon.spy(this.EmptyView.prototype, 'destroy');
+        this.beforeRemoveSpy = this.sinon.spy(this.collectionView, 'onBeforeRemoveEmpty');
+        this.removeSpy = this.sinon.spy(this.collectionView, 'onRemoveEmpty');
         this.collection.add({foo: 'wut'});
       });
 
       it('should destroy the emptyView', function() {
         expect(this.destroySpy).to.have.been.called;
+      });
+
+      it('should call "onBeforeRemoveEmpty"', function() {
+        expect(this.beforeRemoveSpy)
+          .to.have.been.calledOnce
+          .and.calledOn(this.collectionView);
+      });
+
+      it('should call "onRemoveEmpty"', function() {
+        expect(this.removeSpy)
+          .to.have.been.calledOnce
+          .and.calledOn(this.collectionView);
       });
 
       it('should show the new item', function() {
@@ -60,6 +106,8 @@ describe('collectionview - emptyView', function() {
       });
 
       this.destroySpy = this.sinon.spy(this.EmptyView.prototype, 'destroy');
+      this.beforeRemoveSpy = this.sinon.spy(this.collectionView, 'onBeforeRemoveEmpty');
+      this.removeSpy = this.sinon.spy(this.collectionView, 'onRemoveEmpty');
 
       this.collectionView.render();
       this.collection.reset([{foo: 'bar'}, {foo: 'baz'}]);
@@ -68,6 +116,18 @@ describe('collectionview - emptyView', function() {
 
     it('should destroy the emptyView', function() {
       expect(this.destroySpy).to.have.been.called;
+    });
+
+    it('should call "onBeforeRemoveEmpty"', function() {
+      expect(this.beforeRemoveSpy)
+        .to.have.been.calledOnce
+        .and.calledOn(this.collectionView);
+    });
+
+    it('should call "onRemoveEmpty"', function() {
+      expect(this.removeSpy)
+        .to.have.been.calledOnce
+        .and.calledOn(this.collectionView);
     });
 
     it('should show all three items without empty view', function() {
@@ -82,12 +142,27 @@ describe('collectionview - emptyView', function() {
         collection: this.collection
       });
 
+      this.beforeRenderSpy = this.sinon.spy(this.collectionView, 'onBeforeRenderEmpty');
+      this.renderSpy = this.sinon.spy(this.collectionView, 'onRenderEmpty');
+
       this.collectionView.render();
       this.collection.remove(this.collection.at(0));
     });
 
     it('should append the html for the emptyView', function() {
       expect(this.collectionView.$el).to.have.$html('<span>empty</span>');
+    });
+
+    it('should call "onBeforeRenderEmpty"', function() {
+      expect(this.beforeRenderSpy)
+        .to.have.been.calledOnce
+        .and.calledOn(this.collectionView);
+    });
+
+    it('should call "onRenderEmpty"', function() {
+      expect(this.renderSpy)
+        .to.have.been.calledOnce
+        .and.calledOn(this.collectionView);
     });
 
     it('should reference each of the rendered view items', function() {

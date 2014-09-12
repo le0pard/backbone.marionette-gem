@@ -124,6 +124,21 @@ describe('Marionette.bindEntityEvents', function() {
     });
   });
 
+  describe('when bindings is not an object nor a function', function() {
+    beforeEach(function() {
+      this.run = function() {
+        Marionette.bindEntityEvents(this.target, this.entity, 'handleFoo');
+      }.bind(this);
+    });
+
+    it('should error', function() {
+      expect(this.run).to.throw(Marionette.Error, new Marionette.Error({
+        message: 'Bindings must be an object or function.',
+        url: 'marionette.functions.html#marionettebindentityevents'
+      }));
+    });
+  });
+
   describe('when bindEntityEvents is proxied', function() {
     beforeEach(function() {
       this.target.bindEntityEvents = Marionette.proxyBindEntityEvents;

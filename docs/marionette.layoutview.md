@@ -1,3 +1,5 @@
+## [View the new docs](http://marionettejs.com/docs/marionette.layoutview.html)
+
 # Marionette.LayoutView
 
 A `LayoutView` is a hybrid of an `ItemView` and a collection of `Region` objects. They
@@ -29,8 +31,8 @@ will provide features such as `onShow` callbacks, etc. Please see
 * [Overriding the default RegionManager](#overriding-the-default-regionmanager)
 * [Region Availability](#region-availability)
 * [Re-Rendering A LayoutView](#re-rendering-a-layoutview)
-  * [Avoid Re-Rendering The Entire Layout](#avoid-re-rendering-the-entire-layout)
-* [Nested LayoutViews And Views](#nested-layoutviewss-and-views)
+  * [Avoid Re-Rendering The Entire LayoutView](#avoid-re-rendering-the-entire-layoutview)
+* [Nested LayoutViews And Views](#nested-layoutviews-and-views)
 * [Destroying A LayoutView](#destroying-a-layoutview)
 * [Custom Region Class](#custom-region-class)
 * [Adding And Removing Regions](#adding-and-removing-regions)
@@ -111,7 +113,7 @@ Marionette.LayoutView.extend({
 });
 ```
 
-Note that the function recieves the view's `options` arguments that
+Note that the function receives the view's `options` arguments that
 were passed in to the view's constructor. `this.options` is not yet
 available when the regions are first initialized, so the options
 must be accessed through this parameter.
@@ -180,7 +182,7 @@ Therefore, it is suggested that you avoid re-rendering the entire
 layoutView unless absolutely necessary. Instead, if you are binding the
 layoutView's template to a model and need to update portions of the layoutView,
 you should listen to the model's "change" events and only update the
-neccesary DOM elements.
+necessary DOM elements.
 
 ## Nested LayoutViews And Views
 

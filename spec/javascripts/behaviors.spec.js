@@ -3,13 +3,20 @@ describe('Behaviors', function() {
 
   describe('behavior lookup', function() {
     it('should throw if behavior lookup is not defined', function() {
-      expect(Marionette.Behaviors.behaviorsLookup).to.throw;
+      expect(function() {
+        Marionette.Behaviors.behaviorsLookup();
+      }).to.throw(Marionette.Error, new Marionette.Error({
+        message: 'You must define where your behaviors are stored.',
+        url: 'marionette.behaviors.md#behaviorslookup'
+      }));
     });
   });
 
   describe('behavior parsing with a functional behavior lookup', function() {
     beforeEach(function() {
-      this.behaviors = { foo: this.sinon.stub() };
+      this.behaviors = {
+        foo: this.sinon.spy(Marionette, "Behavior")
+      };
       Marionette.Behaviors.behaviorsLookup = _.constant(this.behaviors);
     });
 
@@ -30,7 +37,10 @@ describe('Behaviors', function() {
 
   describe('behavior parsing', function() {
     beforeEach(function() {
-      this.behaviors = { foo: this.sinon.stub() };
+      this.behaviors = {
+        foo: this.sinon.spy(Marionette, "Behavior")
+      };
+
       Marionette.Behaviors.behaviorsLookup = this.behaviors;
     });
 
@@ -121,6 +131,10 @@ describe('Behaviors', function() {
     it('should call initialize when a behavior is created', function() {
       expect(this.initializeStub).to.have.been.calledOnce.and.calledWith(this.behaviorOptions, this.view);
     });
+
+    it('should set _behaviors', function() {
+      expect(this.view._behaviors.length).to.be.equal(1);
+    });
   });
 
   describe('behavior events', function() {
@@ -167,6 +181,51 @@ describe('Behaviors', function() {
 
     it('should call the view click handler', function() {
       expect(this.viewClickStub).to.have.been.calledOnce.and.calledOn(this.view);
+    });
+  });
+
+  describe('behavior triggers', function() {
+    beforeEach(function() {
+      this.onClickFooStub = this.sinon.stub();
+
+      this.behaviors = {
+        foo: Marionette.Behavior.extend({
+          triggers: { 'click': 'click:foo' },
+          onClickFoo: this.onClickFooStub
+        })
+      };
+
+      this.model      = new Backbone.Model();
+      this.collection = new Backbone.Collection();
+
+      this.View = Marionette.ItemView.extend({
+        behaviors: { foo: {} }
+      });
+
+      Marionette.Behaviors.behaviorsLookup = this.behaviors;
+
+      this.view = new this.View({
+        model: this.model,
+        collection: this.collection
+      });
+
+      this.triggerMethodSpy = this.sinon.spy();
+
+      this.view.on('click:foo', this.triggerMethodSpy);
+
+      this.view.$el.click();
+    });
+
+    it('calls `triggerMethod` with the triggered event', function() {
+      expect(this.triggerMethodSpy)
+        .to.have.been.calledOnce
+        .and.calledOn(this.view);
+    });
+
+    it('calls the triggered method', function() {
+      expect(this.onClickFooStub)
+        .to.have.been.calledOnce
+        .and.have.been.calledOn(sinon.match.instanceOf(this.behaviors.foo));
     });
   });
 
@@ -492,6 +551,33 @@ describe('Behaviors', function() {
     });
   });
 
+  describe('behavior triggerMethod calls', function() {
+    beforeEach(function() {
+      this.behaviors = {
+        foo: Marionette.Behavior.extend({
+          onFoo: function() {
+            return "behavior foo";
+          }
+        })
+      };
+      Marionette.Behaviors.behaviorsLookup = this.behaviors;
+
+      this.View = Marionette.View.extend({
+        behaviors: { foo: {} },
+
+        onFoo: function() {
+          return "view foo";
+        }
+      });
+
+      this.view = new this.View();
+    });
+
+    it('onFoo should return "foo"', function() {
+      expect(this.view.triggerMethod('foo')).to.equal('view foo');
+    });
+  });
+
   describe('behavior is evented', function() {
     beforeEach(function() {
       this.listenToStub = this.sinon.stub();
@@ -588,6 +674,10 @@ describe('Behaviors', function() {
 
     it('should call initialize on grouped behaviors', function() {
       expect(this.initializeStub).to.have.been.calledOnce;
+    });
+
+    it('should set _behaviors', function() {
+      expect(this.view._behaviors.length).to.be.equal(2);
     });
 
     it('should call onRender on grouped behaviors', function() {
