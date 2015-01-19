@@ -40,10 +40,10 @@
   },
   "github": "https://github.com/marionettejs/backbone.marionette",
   "dependencies": {
-    "backbone.babysitter": "^0.1.0",
-    "backbone.wreqr": "^1.0.0",
-    "backbone": "1.0.0 - 1.1.2",
-    "underscore": "1.4.4 - 2.0.0"
+    "backbone.babysitter": ">=0.1.0",
+    "backbone.wreqr": ">=1.0.0",
+    "backbone": ">=1.0.0",
+    "underscore": ">=1.4.4"
   },
   "devDependencies": {
     "chai": "1.9.1",
