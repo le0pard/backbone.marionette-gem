@@ -2,7 +2,7 @@
   "name": "backbone.marionette",
   "description": "Make your Backbone.js apps dance!",
   "version": "2.3.2",
-  "homepage": "https://github.com/marionettejs/backbone.marionette",
+  "homepage": "https://github.com/le0pard/backbone.marionette-gem",
   "main": "lib/core/backbone.marionette.js",
   "keywords": [
     "backbone",
@@ -36,14 +36,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/marionettejs/backbone.marionette.git"
+    "url": "https://github.com/le0pard/backbone.marionette-gem.git"
   },
-  "github": "https://github.com/marionettejs/backbone.marionette",
+  "github": "https://github.com/le0pard/backbone.marionette-gem",
   "dependencies": {
     "backbone.babysitter": ">=0.1.0",
     "backbone.wreqr": ">=1.0.0",
     "backbone": ">=1.0.0",
-    "underscore": ">=1.4.4"
+    "underscore": ">=1.5.0"
   },
   "devDependencies": {
     "chai": "1.9.1",
