@@ -19,10 +19,9 @@ Marionette.View = Backbone.View.extend({
 
     this._behaviors = Marionette.Behaviors(this);
 
-    Backbone.View.apply(this, arguments);
+    Backbone.View.call(this, this.options);
 
     Marionette.MonitorDOMRefresh(this);
-    this.on('show', this.onShowCalled);
   },
 
   // Get the template for this view
@@ -60,10 +59,10 @@ Marionette.View = Backbone.View.extend({
 
   // normalize the values of passed hash with the views `ui` selectors.
   // `{foo: "@ui.bar"}`
-  normalizeUIValues: function(hash) {
+  normalizeUIValues: function(hash, properties) {
     var ui = _.result(this, 'ui');
     var uiBindings = _.result(this, '_uiBindings');
-    return Marionette.normalizeUIValues(hash, uiBindings || ui);
+    return Marionette.normalizeUIValues(hash, uiBindings || ui, properties);
   },
 
   // Configure `triggers` to forward DOM events to view
@@ -134,9 +133,6 @@ Marionette.View = Backbone.View.extend({
     return this;
   },
 
-  // Internal method, handles the `show` event.
-  onShowCalled: function() {},
-
   // Internal helper method to verify whether the view hasn't been destroyed
   _ensureViewIsIntact: function() {
     if (this.isDestroyed) {
@@ -152,7 +148,7 @@ Marionette.View = Backbone.View.extend({
   // for you. You can specify an `onDestroy` method in your view to
   // add custom code that is called after the view is destroyed.
   destroy: function() {
-    if (this.isDestroyed) { return; }
+    if (this.isDestroyed) { return this; }
 
     var args = _.toArray(arguments);
 
@@ -166,6 +162,8 @@ Marionette.View = Backbone.View.extend({
 
     // unbind UI elements
     this.unbindUIElements();
+
+    this.isRendered = false;
 
     // remove the view from the DOM
     this.remove();
@@ -273,15 +271,42 @@ Marionette.View = Backbone.View.extend({
   // import the `triggerMethod` to trigger events with corresponding
   // methods if the method exists
   triggerMethod: function() {
+    var ret = Marionette._triggerMethod(this, arguments);
+
+    this._triggerEventOnBehaviors(arguments);
+    this._triggerEventOnParentLayout(arguments[0], _.rest(arguments));
+
+    return ret;
+  },
+
+  _triggerEventOnBehaviors: function(args) {
     var triggerMethod = Marionette._triggerMethod;
-    var ret = triggerMethod(this, arguments);
     var behaviors = this._behaviors;
     // Use good ol' for as this is a very hot function
     for (var i = 0, length = behaviors && behaviors.length; i < length; i++) {
-      triggerMethod(behaviors[i], arguments);
+      triggerMethod(behaviors[i], args);
+    }
+  },
+
+  _triggerEventOnParentLayout: function(eventName, args) {
+    var layoutView = this._parentLayoutView();
+    if (!layoutView) {
+      return;
     }
 
-    return ret;
+    // invoke triggerMethod on parent view
+    var eventPrefix = Marionette.getOption(layoutView, 'childViewEventPrefix');
+    var prefixedEventName = eventPrefix + ':' + eventName;
+
+    Marionette._triggerMethod(layoutView, [prefixedEventName, this].concat(args));
+
+    // call the parent view's childEvents handler
+    var childEvents = Marionette.getOption(layoutView, 'childEvents');
+    var normalizedChildEvents = layoutView.normalizeMethods(childEvents);
+
+    if (!!normalizedChildEvents && _.isFunction(normalizedChildEvents[eventName])) {
+      normalizedChildEvents[eventName].apply(layoutView, [this].concat(args));
+    }
   },
 
   // This method returns any views that are immediate
@@ -302,9 +327,34 @@ Marionette.View = Backbone.View.extend({
     }, children);
   },
 
+  // Internal utility for building an ancestor
+  // view tree list.
+  _getAncestors: function() {
+    var ancestors = [];
+    var parent  = this._parent;
+
+    while (parent) {
+      ancestors.push(parent);
+      parent = parent._parent;
+    }
+
+    return ancestors;
+  },
+
+  // Returns the containing parent view.
+  _parentLayoutView: function() {
+    var ancestors = this._getAncestors();
+    return _.find(ancestors, function(parent) {
+      return parent instanceof Marionette.LayoutView;
+    });
+  },
+
   // Imports the "normalizeMethods" to transform hashes of
   // events=>function references/names to a hash of events=>function references
   normalizeMethods: Marionette.normalizeMethods,
+
+  // A handy way to merge passed-in options onto the instance
+  mergeOptions: Marionette.mergeOptions,
 
   // Proxy `getOption` to enable getting options from this or this.options by name.
   getOption: Marionette.proxyGetOption,

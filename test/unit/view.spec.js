@@ -46,7 +46,8 @@ describe('base view', function() {
 
       this.view = new Marionette.View();
 
-      this.removeSpy = this.sinon.spy(this.view, 'remove');
+      this.sinon.spy(this.view, 'remove');
+      this.sinon.spy(this.view, 'destroy');
 
       this.onDestroyStub = this.sinon.stub();
       this.view.onDestroy = this.onDestroyStub;
@@ -66,11 +67,25 @@ describe('base view', function() {
     });
 
     it('should remove the view', function() {
-      expect(this.removeSpy).to.have.been.calledOnce;
+      expect(this.view.remove).to.have.been.calledOnce;
     });
 
     it('should set the view isDestroyed to true', function() {
       expect(this.view).to.be.have.property('isDestroyed', true);
+    });
+
+    it('should return the View', function() {
+      expect(this.view.destroy).to.have.returned(this.view);
+    });
+
+    describe('and it has already been destroyed', function() {
+      beforeEach(function() {
+        this.view.destroy();
+      });
+
+      it('should return the View', function() {
+        expect(this.view.destroy).to.have.returned(this.view);
+      });
     });
 
     describe('isDestroyed property', function() {
@@ -192,6 +207,29 @@ describe('base view', function() {
     });
   });
 
+  // http://backbonejs.org/#View-constructor
+  describe('when constructing a view with Backbone viewOptions', function () {
+    it('should attach the viewOptions to the view if options are on the view', function () {
+      this.MyView = Marionette.View.extend({
+        options: {
+          className: '.some-class'
+        }
+      });
+      this.myView = new this.MyView();
+      expect(this.myView.className).to.equal('.some-class');
+    });
+
+    it('should attach the viewOptions to the view if options are passed as a function', function () {
+      var options = function(){
+        return {
+          className: '.some-class'
+        };
+      };
+      this.myView = new Marionette.View(options);
+      expect(this.myView.className).to.equal('.some-class');
+    });
+  });
+
   describe('should expose its options in the constructor', function() {
     beforeEach(function() {
       this.options = {foo: 'bar'};
@@ -240,6 +278,79 @@ describe('base view', function() {
 
     it("should return all attributes", function(){
       expect(view.serializeModel(model)).to.be.eql(modelData);
+    });
+  });
+
+  describe("when proxying events to a parent layout", function() {
+
+    beforeEach(function() {
+      this.LayoutView = Marionette.LayoutView.extend({
+        template: _.template('<div class="child"></div>'),
+
+        regions: {
+          'child': '.child',
+        },
+
+        childEvents: {
+          'boom': 'onBoom'
+        },
+
+      });
+
+      this.ChildView = Marionette.ItemView.extend({
+        template: false
+      });
+
+      this.layoutView = new this.LayoutView();
+      this.childView = new this.ChildView();
+      this.layoutView.render();
+
+      this.layoutEventHandler = this.sinon.spy();
+      this.layoutView.on('childview:boom', this.layoutEventHandler);
+
+      this.layoutEventOnHandler = this.sinon.spy();
+      this.layoutView.onChildviewBoom = this.layoutEventOnHandler;
+
+      this.layoutViewOnBoomHandler = this.sinon.spy();
+      this.layoutView.onBoom = this.layoutViewOnBoomHandler;
+    });
+
+    describe('when there is not a containing layout', function() {
+      beforeEach(function(){
+        this.childView.triggerMethod('boom', 'foo', 'bar');
+      });
+
+      it('does not emit the event on the layout', function() {
+        expect(this.layoutEventHandler).not.to.have.been.called;
+      });
+    });
+
+    describe('when there is a containing layout', function() {
+      beforeEach(function(){
+        this.layoutView.showChildView('child', this.childView);
+        this.childView.triggerMethod('boom', 'foo', 'bar');
+      });
+
+      it('emits the event on the layout', function() {
+        expect(this.layoutEventHandler)
+          .to.have.been.calledWith(this.childView, 'foo', 'bar')
+          .and.to.have.been.calledOn(this.layoutView)
+          .and.CalledOnce;
+      });
+
+      it('invokes the layout on handler', function() {
+        expect(this.layoutEventOnHandler)
+          .to.have.been.calledWith(this.childView, 'foo', 'bar')
+          .and.to.have.been.calledOn(this.layoutView)
+          .and.CalledOnce;
+      });
+
+      it('invokes the layout childEvents handler', function() {
+        expect(this.layoutViewOnBoomHandler)
+          .to.have.been.calledWith(this.childView, 'foo', 'bar')
+          .and.to.have.been.calledOn(this.layoutView)
+          .and.CalledOnce;
+      });
     });
   });
 });

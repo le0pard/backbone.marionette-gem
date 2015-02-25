@@ -16,8 +16,12 @@ describe('collection view', function() {
 
     this.MockCollectionView = Backbone.Marionette.CollectionView.extend({
       childView: this.ChildView,
-      onBeforeRender: function() {},
-      onRender: function() {},
+      onBeforeRender: function() {
+        return this.isRendered;
+      },
+      onRender: function() {
+        return this.isRendered;
+      },
       onBeforeAddChild: function() {},
       onAddChild: function() {},
       onBeforeRemoveChild: function() {},
@@ -165,6 +169,18 @@ describe('collection view', function() {
       expect(this.collectionView.onRender).to.have.been.called;
     });
 
+    it('should call "onBeforeRender" before "onRender"', function() {
+      expect(this.collectionView.onBeforeRender).to.have.been.calledBefore(this.collectionView.onRender);
+    });
+
+    it('should not be rendered when "onBeforeRender" is called', function() {
+      expect(this.collectionView.onBeforeRender.lastCall.returnValue).not.to.be.ok;
+    });
+
+    it('should be rendered when "onRender" is called', function() {
+      expect(this.collectionView.onRender.lastCall.returnValue).to.be.true;
+    });
+
     it('should trigger a "before:render" event', function() {
       expect(this.collectionView.trigger).to.have.been.calledWith('before:render', this.collectionView);
     });
@@ -211,6 +227,10 @@ describe('collection view', function() {
       expect(this.collectionView.getChildView).to.have.been.calledTwice.
         and.calledWith(this.collection.models[0]).
         and.calledWith(this.collection.models[1]);
+    });
+
+    it('should be marked rendered', function() {
+      expect(this.collectionView).to.have.property('isRendered', true);
     });
   });
 
@@ -327,6 +347,14 @@ describe('collection view', function() {
 
       this.collection.sort();
       expect($(this.collectionView.$('span').first())).to.contain.$text('foo');
+    });
+  });
+
+  describe('when instantiating a view with a different sort option than in the view\'s definition', function () {
+    it('should maintain the instantiated sort option', function () {
+      this.CollectionView = Marionette.CollectionView.extend({ sort: false }); 
+      this.newCollectionView = new this.CollectionView({ sort: true });
+      expect(this.newCollectionView.getOption('sort')).to.equal(true);
     });
   });
 
@@ -517,8 +545,18 @@ describe('collection view', function() {
       this.EventedView = Backbone.Marionette.CollectionView.extend({
         childView: this.ChildView,
         someCallback: function() {},
-        onBeforeDestroy: function() {},
-        onDestroy: function() {}
+        onBeforeDestroy: function() {
+          return {
+            isRendered: this.isRendered,
+            isDestroyed: this.isDestroyed
+          };
+        },
+        onDestroy: function() {
+          return {
+            isRendered: this.isRendered,
+            isDestroyed: this.isDestroyed
+          };
+        }
       });
 
       this.destroyHandler = this.sinon.stub();
@@ -599,6 +637,18 @@ describe('collection view', function() {
       expect(this.collectionView.onBeforeDestroy).to.have.been.called;
     });
 
+    it('should call "onBeforeDestroy" before "onDestroy"', function() {
+      expect(this.collectionView.onBeforeDestroy).to.have.been.calledBefore(this.collectionView.onDestroy);
+    });
+
+    it('should not be destroyed when "onBeforeDestroy" is called', function() {
+      expect(this.collectionView.onBeforeDestroy.lastCall.returnValue.isDestroyed).not.to.be.ok;
+    });
+
+    it('should be destroyed when "onDestroy" is called', function() {
+      expect(this.collectionView.onDestroy.lastCall.returnValue.isDestroyed).to.be.true;
+    });
+
     it('should trigger a "before:destroy" event', function() {
       expect(this.collectionView.trigger).to.have.been.calledWith('before:destroy:collection');
     });
@@ -618,6 +668,28 @@ describe('collection view', function() {
 
     it('should return the collection view', function() {
       expect(this.collectionView.destroy).to.have.returned(this.collectionView);
+    });
+
+    it('should be marked destroyed', function() {
+      expect(this.collectionView).to.have.property('isDestroyed', true);
+    });
+
+    it('should be marked not rendered', function() {
+      expect(this.collectionView).to.have.property('isRendered', false);
+    });
+
+    it('should return the CollectionView', function() {
+      expect(this.collectionView.destroy).to.have.returned(this.collectionView);
+    });
+
+    describe('and it has already been destroyed', function() {
+      beforeEach(function() {
+        this.collectionView.destroy();
+      });
+
+      it('should return the CollectionView', function() {
+        expect(this.collectionView.destroy).to.have.returned(this.collectionView);
+      });
     });
   });
 
@@ -876,6 +948,7 @@ describe('collection view', function() {
   describe('when a child view is added to a collection view, after the collection view has been shown', function() {
     beforeEach(function() {
       this.ChildView = Backbone.Marionette.ItemView.extend({
+        onBeforeShow: function() {},
         onShow: function() {},
         onDomRefresh: function() {},
         onRender: function() {},
@@ -887,6 +960,7 @@ describe('collection view', function() {
         onShow: function() {}
       });
 
+      this.sinon.spy(this.ChildView.prototype, 'onBeforeShow');
       this.sinon.spy(this.ChildView.prototype, 'onShow');
       this.sinon.spy(this.ChildView.prototype, 'onDomRefresh');
 
@@ -911,6 +985,14 @@ describe('collection view', function() {
 
     it('should not use the render buffer', function() {
       expect(this.collectionView.attachBuffer).not.to.have.been.called;
+    });
+
+    it('should call the "onBeforeShow" method of the child view', function() {
+      expect(this.ChildView.prototype.onBeforeShow).to.have.been.called;
+    });
+
+    it('should call the childs "onBeforeShow" method with itself as the context', function() {
+      expect(this.ChildView.prototype.onBeforeShow).to.have.been.calledOn(this.view);
     });
 
     it('should call the "onShow" method of the child view', function() {

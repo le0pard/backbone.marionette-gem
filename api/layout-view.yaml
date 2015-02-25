@@ -33,7 +33,14 @@ examples:
       });
       
       // Create a new LayoutView
-      var layoutView = new Marionette.LayoutView();
+      var layoutView = new Marionette.LayoutView({
+        // This option removes the layoutView from
+        // the DOM before destroying the children
+        // preventing repaints as each option is removed.
+        // However, it makes it difficult to do close animations
+        // for a child view (false by default)
+        destroyImmediate: true
+      });
       
       // Lastly, show the LayoutView in the App's mainRegion
       MyApp.getRegion('main').show(layoutView);
@@ -189,6 +196,7 @@ functions:
       If you are showing a LayoutView within a parent region manager, replacing the LayoutView with another view or LayoutView will destroy the current one. All of this ensures that LayoutViews and the views that they contain are cleaned up correctly.
       
       @api public
+      @returns {Marionette.LayoutView} The current view.
 
     examples:
       -
@@ -202,6 +210,48 @@ functions:
           
           layoutView.destroy();
           ```
+
+  showChildView:
+    description: |
+      Shows a view in a region.
+      
+      This is a very useful method for showing child views inside a layout's regions in `onBeforeAttach` or `onAttach`.
+      
+      @api public
+      @param {String} regionName - The name of the region you're trying to get
+      @param {View} view - The view instance that you\'re showing in the region
+
+    examples:
+      -
+        name: Showing a view in a region
+        
+        example: |
+          You'll often want to show a view inside of a layout's regions before the layout is attached to the document.
+          The easiest way to do this is inside the layout's `before:attach` handler.
+          
+          ```js
+          var LayoutClass = Mn.LayoutView.extend({
+            onAttach: function() {
+              this.showChildView('sidebar', new SidebarView());
+              this.showChildView('list', new ListView());
+            }
+          });
+          
+          var layoutView = new MyLayoutView();
+          layoutView.render();
+          ```
+
+  getChildView:
+    description: |
+      Retrieves a child view from the LayoutView's region.
+
+      This is a useful method for grabbing a child view from a layout's region.
+      
+      In general, layouts should not reference their child views, but in the cases where you find yourself wanting to do this `getChildView` is a useful method.
+
+      @api public
+      @param {String} regionName - The name of the region where the child view is held.
+
 
   addRegion:
     description: |

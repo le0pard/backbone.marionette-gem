@@ -24,11 +24,16 @@ _.extend(Marionette.Object.prototype, Backbone.Events, {
     this.triggerMethod('before:destroy');
     this.triggerMethod('destroy');
     this.stopListening();
+
+    return this;
   },
 
   // Import the `triggerMethod` to trigger events with corresponding
   // methods if the method exists
   triggerMethod: Marionette.triggerMethod,
+
+  // A handy way to merge options onto the instance
+  mergeOptions: Marionette.mergeOptions,
 
   // Proxy `getOption` to enable getting options from this or this.options by name.
   getOption: Marionette.proxyGetOption,

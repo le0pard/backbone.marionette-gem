@@ -12,6 +12,17 @@ describe('layoutView', function() {
       regions: {
         regionOne: '#regionOne',
         regionTwo: '#regionTwo'
+      },
+      initialize: function() {
+        if (this.model) {
+          this.listenTo(this.model, 'change', this.render);
+        }
+      },
+      onBeforeRender: function() {
+        return this.isRendered;
+      },
+      onRender: function() {
+        return this.isRendered;
       }
     });
 
@@ -142,7 +153,9 @@ describe('layoutView', function() {
     });
 
     it('should supply the layoutView.options to the function when calling it', function() {
-      expect(this.options).to.deep.equal(this.layoutView.options);
+      expect(_.extend({
+        destroyImmediate: false
+      }, this.options)).to.deep.equal(this.layoutView.options);
     });
 
     it('should build the regions from the returns object literal', function() {
@@ -154,6 +167,9 @@ describe('layoutView', function() {
   describe('on rendering', function() {
     beforeEach(function() {
       this.layoutViewManager = new this.LayoutView();
+      sinon.spy(this.layoutViewManager, 'onRender');
+      sinon.spy(this.layoutViewManager, 'onBeforeRender');
+      sinon.spy(this.layoutViewManager, 'trigger');
       this.layoutViewManager.render();
     });
 
@@ -162,15 +178,59 @@ describe('layoutView', function() {
       var el = this.layoutViewManager.$('#regionOne');
       expect(this.layoutViewManager.regionOne.$el[0]).to.equal(el[0]);
     });
+
+    it('should call "onBeforeRender" before rendering', function() {
+      expect(this.layoutViewManager.onBeforeRender).to.have.been.calledOnce;
+    });
+
+    it('should call "onRender" after rendering', function() {
+      expect(this.layoutViewManager.onRender).to.have.been.calledOnce;
+    });
+
+    it('should call "onBeforeRender" before "onRender"', function() {
+      expect(this.layoutViewManager.onBeforeRender).to.have.been.calledBefore(this.layoutViewManager.onRender);
+    });
+
+    it('should not be rendered when "onBeforeRender" is called', function() {
+      expect(this.layoutViewManager.onBeforeRender.lastCall.returnValue).not.to.be.ok;
+    });
+
+    it('should be rendered when "onRender" is called', function() {
+      expect(this.layoutViewManager.onRender.lastCall.returnValue).to.be.true;
+    });
+
+    it('should trigger a "before:render" event', function() {
+      expect(this.layoutViewManager.trigger).to.have.been.calledWith('before:render', this.layoutViewManager);
+    });
+
+    it('should trigger a "render" event', function() {
+      expect(this.layoutViewManager.trigger).to.have.been.calledWith('render', this.layoutViewManager);
+    });
+
+    it('should be marked rendered', function() {
+      expect(this.layoutViewManager).to.have.property('isRendered', true);
+    });
   });
 
   describe('when destroying', function() {
     beforeEach(function() {
-      this.layoutViewManager = new this.LayoutView();
+      this.layoutViewManager = new this.LayoutView(this.viewOptions );
+      $('<span id="parent">').append(this.layoutViewManager.el);
       this.layoutViewManager.render();
 
       this.regionOne = this.layoutViewManager.regionOne;
       this.regionTwo = this.layoutViewManager.regionTwo;
+
+      var View = Marionette.ItemView.extend({
+        template: false,
+        destroy: function() {
+          this.hadParent = this.$el.closest('#parent').length > 0;
+          return View.__super__.destroy.call(this);
+        }
+      });
+
+      this.regionOneView = new View();
+      this.regionOne.show(this.regionOneView);
 
       this.sinon.spy(this.regionOne, 'empty');
       this.sinon.spy(this.regionTwo, 'empty');
@@ -192,6 +252,52 @@ describe('layoutView', function() {
 
     it('should return the view', function() {
       expect(this.layoutViewManager.destroy).to.have.always.returned(this.layoutViewManager);
+    });
+
+    it('should not remove itself from the DOM before destroying child regions by default', function() {
+      expect(this.regionOneView.hadParent).to.be.true;
+      this.viewOptions = {
+        destroyImmediate: true
+      };
+    });
+
+    it('should remove itself from the DOM before destroying child regions if flag set via options', function() {
+      expect(this.regionOneView.hadParent).to.be.false;
+      this.viewOptions = null;
+      this.LayoutView.prototype.options.destroyImmediate = true;
+    });
+
+    it('should remove itself from the DOM before destroying child regions if flag set on proto options', function() {
+      expect(this.regionOneView.hadParent).to.be.false;
+      _.extend(this.LayoutView.prototype, {
+        options: null,
+        destroyImmediate: true
+      });
+    });
+
+    it('should remove itself from the DOM before destroying child regions if flag set on proto', function() {
+      expect(this.regionOneView.hadParent).to.be.false;
+    });
+
+    it('should be marked destroyed', function() {
+      expect(this.layoutViewManager).to.have.property('isDestroyed', true);
+    });
+
+    it('should be marked not rendered', function() {
+      expect(this.layoutViewManager).to.have.property('isRendered', false);
+    });
+  });
+
+  describe('when showing a childView', function() {
+    beforeEach(function() {
+      this.layoutView = new this.LayoutView();
+      this.layoutView.render();
+      this.childView = new Backbone.View();
+      this.layoutView.showChildView('regionOne', this.childView);
+    });
+
+    it('shows the childview in the region', function() {
+      expect(this.layoutView.getChildView('regionOne')).to.equal(this.childView);
     });
   });
 
@@ -369,18 +475,34 @@ describe('layoutView', function() {
       var UILayoutView = Backbone.Marionette.LayoutView.extend({
         template: this.template,
         regions: {
-          war: '@ui.war'
+          war: '@ui.war',
+          mario: {
+            selector: '@ui.mario'
+          },
+          princess: {
+            el: '@ui.princess'
+          }
         },
         ui: {
-          war: '.craft'
+          war: '.craft',
+          mario: '.bros',
+          princess: '.toadstool'
         }
       });
       this.layoutView = new UILayoutView();
     });
 
-    it('should apply the relevant @ui. syntax selector', function() {
+    it('should apply the relevant @ui. syntax selector to a simple string value', function() {
       expect(this.layoutView.getRegion('war')).to.exist;
       expect(this.layoutView.getRegion('war').$el.selector).to.equal('.craft');
+    });
+    it('should apply the relevant @ui. syntax selector to selector in a region definition object', function() {
+      expect(this.layoutView.getRegion('mario')).to.exist;
+      expect(this.layoutView.getRegion('mario').$el.selector).to.equal('.bros');
+    });
+    it('should apply the relevant @ui. syntax selector to el in a region definition object', function() {
+      expect(this.layoutView.getRegion('princess')).to.exist;
+      expect(this.layoutView.getRegion('princess').$el.selector).to.equal('.toadstool');
     });
   });
 

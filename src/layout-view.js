@@ -10,6 +10,14 @@
 Marionette.LayoutView = Marionette.ItemView.extend({
   regionClass: Marionette.Region,
 
+  options: {
+    destroyImmediate: false
+  },
+
+  // used as the prefix for child view events
+  // that are forwarded through the layoutview
+  childViewEventPrefix: 'childview',
+
   // Ensure the regions are available when the `initialize` method
   // is called.
   constructor: function(options) {
@@ -44,9 +52,21 @@ Marionette.LayoutView = Marionette.ItemView.extend({
   // Handle destroying regions, and then destroy the view itself.
   destroy: function() {
     if (this.isDestroyed) { return this; }
-
+    // #2134: remove parent element before destroying the child views, so
+    // removing the child views doesn't retrigger repaints
+    if(this.getOption('destroyImmediate') === true) {
+      this.$el.remove();
+    }
     this.regionManager.destroy();
     return Marionette.ItemView.prototype.destroy.apply(this, arguments);
+  },
+
+  showChildView: function(regionName, view) {
+    return this.getRegion(regionName).show(view);
+  },
+
+  getChildView: function(regionName) {
+    return this.getRegion(regionName).currentView;
   },
 
   // Add a single region, by name, to the layoutView
@@ -108,7 +128,7 @@ Marionette.LayoutView = Marionette.ItemView.extend({
 
     // Normalize region selectors hash to allow
     // a user to use the @ui. syntax.
-    regions = this.normalizeUIValues(regions);
+    regions = this.normalizeUIValues(regions, ['selector', 'el']);
 
     this.addRegions(regions);
   },
