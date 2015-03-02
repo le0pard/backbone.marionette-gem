@@ -52,7 +52,7 @@ Marionette.CompositeView = Marionette.CollectionView.extend({
   serializeData: function() {
     var data = {};
 
-    if (this.model){
+    if (this.model) {
       data = _.partial(this.serializeModel, this.model).apply(this, arguments);
     }
 
@@ -129,9 +129,17 @@ Marionette.CompositeView = Marionette.CollectionView.extend({
   // Internal method. Append a view to the end of the $el.
   // Overidden from CollectionView to ensure view is appended to
   // childViewContainer
-  _insertAfter: function (childView) {
+  _insertAfter: function(childView) {
     var $container = this.getChildViewContainer(this, childView);
     $container.append(childView.el);
+  },
+
+  // Internal method. Append reordered childView'.
+  // Overidden from CollectionView to ensure reordered views
+  // are appended to childViewContainer
+  _appendReorderedChildren: function(children) {
+    var $container = this.getChildViewContainer(this);
+    $container.append(children);
   },
 
   // Internal method to ensure an `$childViewContainer` exists, for the

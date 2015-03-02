@@ -1,7 +1,7 @@
 {
   "name": "backbone.marionette",
   "description": "Make your Backbone.js apps dance!",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "repo": "le0pard/backbone.marionette-gem",
   "main": "lib/core/backbone.marionette.js",
   "keywords": [

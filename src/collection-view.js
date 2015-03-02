@@ -21,7 +21,7 @@ Marionette.CollectionView = Marionette.View.extend({
   //
   // option to pass `{comparator: compFunction()}` to allow the `CollectionView`
   // to use a custom sort order for the collection.
-  constructor: function(options){
+  constructor: function(options) {
 
     this.once('render', this._initialEvents);
     this._initChildViewStorage();
@@ -132,10 +132,10 @@ Marionette.CollectionView = Marionette.View.extend({
   // do not use their index, you can pass reorderOnSort: true
   // to only reorder the DOM after a sort instead of rendering
   // all the collectionView
-  reorder: function () {
+  reorder: function() {
     var children = this.children;
     var models = this._filteredSortedModels();
-    var modelsChanged = _.find(models, function (model) {
+    var modelsChanged = _.find(models, function(model) {
       return !children.findByModel(model);
     });
 
@@ -146,14 +146,14 @@ Marionette.CollectionView = Marionette.View.extend({
       this.render();
     } else {
       // get the DOM nodes in the same order as the models
-      var els = _.map(models, function (model) {
+      var els = _.map(models, function(model) {
         return children.findByModel(model).el;
       });
 
       // since append moves elements that are already in the DOM,
       // appending the elements will effectively reorder them
       this.triggerMethod('before:reorder');
-      this.$el.append(els);
+      this._appendReorderedChildren(els);
       this.triggerMethod('reorder');
     }
   },
@@ -176,7 +176,7 @@ Marionette.CollectionView = Marionette.View.extend({
     var models = this._filteredSortedModels();
 
     // check for any changes in sort order of views
-    var orderChanged = _.find(models, function(item, index){
+    var orderChanged = _.find(models, function(item, index) {
       var view = this.children.findByModel(item);
       return !view || view._index !== index;
     }, this);
@@ -188,6 +188,12 @@ Marionette.CollectionView = Marionette.View.extend({
 
   // Internal reference to what index a `emptyView` is.
   _emptyViewIndex: -1,
+
+  // Internal method. Separated so that CompositeView can append to the childViewContainer
+  // if necessary
+  _appendReorderedChildren: function(children) {
+    this.$el.append(children);
+  },
 
   // Internal method. Separated so that CompositeView can have
   // more control over events being triggered, around the rendering
@@ -241,7 +247,7 @@ Marionette.CollectionView = Marionette.View.extend({
 
     // Filter after sorting in case the filter uses the index
     if (this.getOption('filter')) {
-      models = _.filter(models, function (model, index) {
+      models = _.filter(models, function(model, index) {
         return this._shouldAddChild(model, index);
       }, this);
     }
@@ -293,7 +299,7 @@ Marionette.CollectionView = Marionette.View.extend({
     var emptyViewOptions = this.getOption('emptyViewOptions') ||
                           this.getOption('childViewOptions');
 
-    if (_.isFunction(emptyViewOptions)){
+    if (_.isFunction(emptyViewOptions)) {
       emptyViewOptions = emptyViewOptions.call(this, child, this._emptyViewIndex);
     }
 
@@ -377,13 +383,12 @@ Marionette.CollectionView = Marionette.View.extend({
     }
 
     // update the indexes of views after this one
-    this.children.each(function (laterView) {
+    this.children.each(function(laterView) {
       if (laterView._index >= view._index) {
         laterView._index += increment ? 1 : -1;
       }
     });
   },
-
 
   // Internal Method. Add the view to children and render it at
   // the given index.
@@ -432,9 +437,13 @@ Marionette.CollectionView = Marionette.View.extend({
 
     if (view) {
       this.triggerMethod('before:remove:child', view);
+
       // call 'destroy' or 'remove', depending on which is found
-      if (view.destroy) { view.destroy(); }
-      else if (view.remove) { view.remove(); }
+      if (view.destroy) {
+        view.destroy();
+      } else if (view.remove) {
+        view.remove();
+      }
 
       delete view._parent;
       this.stopListening(view);
@@ -483,12 +492,11 @@ Marionette.CollectionView = Marionette.View.extend({
       // in order to reduce the number of inserts into the
       // document, which are expensive.
       collectionView._bufferedChildren.splice(index, 0, childView);
-    }
-    else {
+    } else {
       // If we've already rendered the main collection, append
       // the new child into the correct order if we need to. Otherwise
       // append to the end.
-      if (!collectionView._insertBefore(childView, index)){
+      if (!collectionView._insertBefore(childView, index)) {
         collectionView._insertAfter(childView);
       }
     }
@@ -501,7 +509,7 @@ Marionette.CollectionView = Marionette.View.extend({
     var findPosition = this.getOption('sort') && (index < this.children.length - 1);
     if (findPosition) {
       // Find the view after this one
-      currentView = this.children.find(function (view) {
+      currentView = this.children.find(function(view) {
         return view._index === index + 1;
       });
     }
@@ -552,7 +560,7 @@ Marionette.CollectionView = Marionette.View.extend({
   //  'child' is the given model
   //  'index' is the index of that model in the collection
   //  'collection' is the collection referenced by this CollectionView
-  _shouldAddChild: function (child, index) {
+  _shouldAddChild: function(child, index) {
     var filter = this.getOption('filter');
     return !_.isFunction(filter) || filter.call(this, child, index, this.collection);
   },

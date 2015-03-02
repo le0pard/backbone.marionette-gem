@@ -12,7 +12,7 @@ describe('collection/composite view sorting', function() {
 
     this.CompositeView = Marionette.CompositeView.extend({
       childView: this.ChildView,
-      template: this.sinon.stub()
+      template: _.template('<div id="container"></div>')
     });
 
     this.collection = new Backbone.Collection([{foo: 1, bar: 4}, {foo: 2, bar: 3}, {foo: 3, bar: 2}]);
@@ -98,7 +98,7 @@ describe('collection/composite view sorting', function() {
         expect(this.compositeView.$el).to.have.$text('123');
       });
 
-      describe('and then adding another', function () {
+      describe('and then adding another', function() {
         beforeEach(function() {
           this.model = new Backbone.Model({foo: 5, bar: 0});
           this.collection.add(this.model);
@@ -238,7 +238,7 @@ describe('collection/composite view sorting', function() {
         expect(this.compositeView.$el).to.have.$text('321');
       });
 
-      describe('and then adding another', function () {
+      describe('and then adding another', function() {
         beforeEach(function() {
           this.model = new Backbone.Model({foo: 5, bar: 0});
           this.collection.add(this.model);
@@ -392,7 +392,7 @@ describe('collection/composite view sorting', function() {
     });
   });
 
-  describe('when using `{ reorderOnSort: true }`', function () {
+  describe('when using `{ reorderOnSort: true }`', function() {
     var texts = {
       asOption: 'as an option',
       onPrototype: 'on the prototype',
@@ -400,14 +400,14 @@ describe('collection/composite view sorting', function() {
     };
 
     var getSpecTitle = function(options) {
-      return _.map(options, function (v, k) {
+      return _.map(options, function(v, k) {
         return texts[k];
       }).join(' ');
     };
 
-    var describeSpec = function (specOptions) {
-      describe(getSpecTitle(specOptions), function () {
-        beforeEach(function () {
+    var describeSpec = function(specOptions) {
+      describe(getSpecTitle(specOptions), function() {
+        beforeEach(function() {
           var commonAttrs = {
             childView: this.ChildView,
             collection: this.collection
@@ -421,42 +421,58 @@ describe('collection/composite view sorting', function() {
             this.collectionView = new this.CollectionView(_.extend({}, {
               reorderOnSort: true
             }, commonAttrs));
+
+            this.compositeView = new this.CompositeView(_.extend({}, {
+              reorderOnSort: true,
+              childViewContainer: '#container'
+            }, commonAttrs));
           } else if (specOptions.onPrototype) {
             var ReorderedCollectionView = this.CollectionView.extend({
               reorderOnSort: true,
               onReorder: this.sinon.spy(),
               onBeforeReorder: this.sinon.spy()
             });
+
+            var ReorderedCompositeView = this.CompositeView.extend({
+              reorderOnSort: true,
+              childViewContainer: '#container',
+              onReorder: this.sinon.spy(),
+              onBeforeReorder: this.sinon.spy()
+            });
+
             this.collectionView = new ReorderedCollectionView(commonAttrs);
+            this.compositeView = new ReorderedCompositeView(commonAttrs);
           }
 
           this.collectionView.render();
+          this.compositeView.render();
           this.sinon.spy(this.collectionView, 'reorder');
           this.sinon.spy(this.collectionView, 'render');
           this.sinon.spy(this.collectionView, 'trigger');
 
-          var cmp = function (m) {
+          var cmp = function(m) {
             return m.get('bar');
           };
           if (specOptions.viewComparator) {
             this.collection.comparator = 'foo';
             this.collectionView.options.viewComparator = cmp;
+            this.compositeView.options.viewComparator = cmp;
           } else {
             this.collection.comparator = cmp;
           }
           this.collection.sort();
         });
 
-        it('should call reorder instead of render', function () {
+        it('should call reorder instead of render', function() {
           expect(this.collectionView.render).not.to.have.been.called;
           expect(this.collectionView.reorder).to.have.been.calledOnce;
         });
 
-        it('should reorder the DOM', function () {
+        it('should reorder the DOM', function() {
           expect(this.collectionView.$el).to.have.$text('321');
         });
 
-        it('should triggerMethods events', function () {
+        it('should triggerMethods events', function() {
           var cv = this.collectionView;
           if (specOptions.onPrototype) {
             expect(cv.onBeforeReorder).calledBefore(cv.onReorder);
@@ -465,12 +481,16 @@ describe('collection/composite view sorting', function() {
           expect(cv.trigger).to.have.been.calledWith('reorder');
           expect(cv.trigger).to.have.been.calledTwice;
         });
+
+        it('should respect the childViewContainer in a CompositeView', function() {
+          expect(this.compositeView.$('#container')).to.have.$text('321');
+        });
       });
     };
 
-    describeSpec({ asOption: true });
-    describeSpec({ asOption: true, viewComparator: true });
-    describeSpec({ onPrototype: true });
-    describeSpec({ onPrototype: true, viewComparator: true });
+    describeSpec({asOption: true});
+    describeSpec({asOption: true, viewComparator: true});
+    describeSpec({onPrototype: true});
+    describeSpec({onPrototype: true, viewComparator: true});
   });
 });
