@@ -27,7 +27,7 @@ You can specify a `modelView` to use for the model. If you don't
 specify one, it will default to the `Marionette.ItemView`.
 
 ```js
-var CompositeView = Backbone.Marionette.CompositeView.extend({
+var CompositeView = Marionette.CompositeView.extend({
   template: "#leaf-branch-template"
 });
 
@@ -83,9 +83,9 @@ Each childView will be rendered using the `childView`'s template. The `Composite
 template is rendered and the childView's templates are added to this.
 
 ```js
-var ChildView = Backbone.Marionette.ItemView.extend({});
+var ChildView = Marionette.ItemView.extend({});
 
-var CompView = Backbone.Marionette.CompositeView.extend({
+var CompView = Marionette.CompositeView.extend({
   childView: ChildView
 });
 ```
@@ -138,12 +138,12 @@ table structure, specify an `childViewContainer` in your composite view,
 like this:
 
 ```js
-var RowView = Backbone.Marionette.ItemView.extend({
+var RowView = Marionette.ItemView.extend({
   tagName: "tr",
   template: "#row-template"
 });
 
-var TableView = Backbone.Marionette.CompositeView.extend({
+var TableView = Marionette.CompositeView.extend({
   childView: RowView,
 
   // specify a jQuery selector to put the `childView` instances into
@@ -162,7 +162,7 @@ function needs to return a jQuery selector string, or a jQuery selector
 object.
 
 ```js
-var TableView = Backbone.Marionette.CompositeView.extend({
+var TableView = Marionette.CompositeView.extend({
   // ...
 
   childViewContainer: function(){
@@ -219,6 +219,8 @@ As with item view instances, the composite view instance is passed as the
 third argument to the `Renderer` object's `render` method, which is
 useful in custom `Renderer` implementations.
 
+As with CollectionView, CompositeView will maintain the sort order of its child views from the collection. It should be noted that the full view will re-render and not just the children, this is to cater for the use case where no `childViewContainer` is used.
+
 ## Events And Callbacks
 
 During the course of rendering a composite, several events will
@@ -238,7 +240,7 @@ your view to provide custom code for dealing with the view's
 `el` after it has been rendered:
 
 ```js
-Backbone.Marionette.CompositeView.extend({
+Marionette.CompositeView.extend({
   onRender: function(){
     // do stuff here
   }
