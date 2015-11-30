@@ -22,7 +22,9 @@ Using the `LayoutView` class you can create nested regions.
   * [Set `currentView` On Initialization](#set-currentview-on-initialization)
   * [Call `attachView` On Region](#call-attachview-on-region)
 * [Region Events And Callbacks](#region-events-and-callbacks)
-  * [Events raised during `show`](#events-raised-during-show)
+  * [Events Raised on the Region During `show`](#events-raised-on-the-region-during-show)
+  * [Events Raised on the View During `show`](#events-raised-on-the-view-during-show)
+  * [Example Event Handlers](#example-event-handlers)
 * [Custom Region Classes](#custom-region-classes)
   * [Attaching Custom Region Classes](#attaching-custom-region-classes)
   * [Instantiate Your Own Region](#instantiate-your-own-region)
@@ -229,11 +231,13 @@ and `empty` methods to display and shut-down a view:
 var myView = new MyView();
 
 // render and display the view
-MyApp.mainRegion.show(myView);
+MyApp.mainRegion.show(myView, options);
 
 // empties the current view
 MyApp.mainRegion.empty();
 ```
+
+The `options` object is optional. If provided, it will be passed to the [events raised during `show`](#events-raised-during-show) (except for `before:empty` and `empty`). Special properties that change the behavior of `show` include `preventDestroy` and `forceShow`.
 
 #### preventDestroy
 
@@ -424,24 +428,39 @@ MyApp.someRegion.attachView(myView);
 
 ## Region Events And Callbacks
 
-### Events raised during `show`:
-A region will raise a few events when showing
-and destroying views:
+A region will raise a few events on itself and on the target view when showing and destroying views.
 
-* "before:show" / `onBeforeShow` - Called on the view instance after the view has been rendered, but before its been displayed.
-* "before:show" / `onBeforeShow` - Called on the region instance after the view has been rendered, but before its been displayed.
-* "show" / `onShow` - Called on the view instance when the view has been rendered and displayed.
-* "show" / `onShow` - Called on the region instance when the view has been rendered and displayed.
-* "before:swap" / `onBeforeSwap` - Called on the region instance before a new view is shown. NOTE: this will only be called when a view is being swapped, not when the region is empty.
-* "before:swapOut" / `onBeforeSwapOut` - Called on the region instance before a new view swapped in. NOTE: this will only be called when a view is being swapped, not when the region is empty.
-* "swap" / `onSwap` - Called on the region instance when a new view is shown. NOTE: this will only be called when a view is being swapped, not when the region is empty.
-* "swapOut" / `onSwapOut` - Called on the region instance when a new view swapped in to replace the currently shown view. NOTE: this will only be called when a view is being swapped, not when the region is empty.
+### Events Raised on the Region During `show()`
 
-* "before:empty" / `onBeforeEmpty` - Called on the region instance before the view has been emptied.
-* "empty" / `onEmpty` - Called when the view has been emptied.
+* `before:show` / `onBeforeShow` - Called after the view has been rendered, but before its been displayed.
+* `show` / `onShow` - Called when the view has been rendered and displayed.
+* `before:swap` / `onBeforeSwap` - Called before a new view is shown. NOTE: this will only be called when a view is being swapped, not when the region is empty.
+* `swap` / `onSwap` - Called when a new view is shown. NOTE: this will only be called when a view is being swapped, not when the region is empty.
+* `before:swapOut` / `onBeforeSwapOut` - Called before a new view swapped in. NOTE: this will only be called when a view is being swapped, not when the region is empty.
+* `swapOut` / `onSwapOut` - Called when a new view swapped in to replace the currently shown view. NOTE: this will only be called when a view is being swapped, not when the region is empty.
+* `before:empty` / `onBeforeEmpty` - Called before the view has been emptied.
+* `empty` / `onEmpty` - Called when the view has been emptied.
 
-These events can be used to run code when your region
-opens and destroys views.
+### Events Raised on the View During `show()`
+
+* `before:render` / `onBeforeRender` - Called before the view is rendered.
+* `render` / `onRender` - Called after the view is rendered, but before it is attached to the DOM.
+* `before:show` / `onBeforeShow` - Called after the view has been rendered, but before it has been bound to the region.
+* `before:attach` / `onBeforeAttach` - Called before the view is attached to the DOM.  This will not fire if the Region itself is not attached.
+* `attach` / `onAttach` - Called after the view is attached to the DOM.  This will not fire if the Region itself is not attached.
+* `show` / `onShow` - Called when the view has been rendered and bound to the region.
+* `dom:refresh` / `onDomRefresh` - Called when the view is both rendered and shown, but only if it is attached to the DOM.  This will not fire if the Region itself is not attached.
+* `before:destroy` / `onBeforeDestroy` - Called before destroying a view.
+* `destroy` / `onDestroy` - Called after destroying a view.
+
+Note: `render`, `destroy`, and `dom:refresh` are triggered on pure Backbone Views during a show, but for a complete implementation of these events the Backbone View should fire `render` within `render()` and `destroy` within `remove()` as well as set the following flags:
+
+```js
+view.supportsRenderLifecycle = true;
+view.supportsDestroyLifecycle = true;
+```
+
+### Example Event Handlers
 
 ```js
 MyApp.mainRegion.on("before:show", function(view, region, options){
@@ -480,10 +499,9 @@ MyApp.mainRegion.on("swapOut", function(view, region, options){
   // you also have access to the `options` that were passed to the Region.show call
 });
 
-MyApp.mainRegion.on("empty", function(view, region, options){
+MyApp.mainRegion.on("empty", function(view, region){
   // manipulate the `view` or do something extra
   // with the `region`
-  // you also have access to the `options` that were passed to the Region.show call
 });
 
 var MyRegion = Marionette.Region.extend({
@@ -589,7 +607,7 @@ var SomeRegion = Marionette.Region.extend({
 
 MyApp.someRegion = new SomeRegion();
 
-MyApp.someRegion.show(someView);
+MyApp.someRegion.show(someView, options);
 ```
 
 You can optionally add an `initialize` function to your Region

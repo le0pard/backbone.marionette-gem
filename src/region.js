@@ -43,6 +43,7 @@ Marionette.Region = Marionette.Object.extend({
     }
 
     this._ensureViewIsIntact(view);
+    Marionette.MonitorDOMRefresh(view);
 
     var showOptions     = options || {};
     var isDifferentView = view !== this.currentView;
@@ -65,7 +66,7 @@ Marionette.Region = Marionette.Object.extend({
       this.triggerMethod('before:swapOut', this.currentView, this, options);
     }
 
-    if (this.currentView) {
+    if (this.currentView && isDifferentView) {
       delete this.currentView._parent;
     }
 
@@ -87,9 +88,13 @@ Marionette.Region = Marionette.Object.extend({
       // to the currentView since once a view has been destroyed
       // we can not reuse it.
       view.once('destroy', this.empty, this);
-      view.render();
 
+      // make this region the view's parent,
+      // It's important that this parent binding happens before rendering
+      // so that any events the child may trigger during render can also be
+      // triggered on the child's ancestor views
       view._parent = this;
+      this._renderView(view);
 
       if (isChangingView) {
         this.triggerMethod('before:swap', view, this, options);
@@ -155,6 +160,16 @@ Marionette.Region = Marionette.Object.extend({
     return _.union([view], _.result(view, '_getNestedViews') || []);
   },
 
+  _renderView: function(view) {
+    if (!view.supportsRenderLifecycle) {
+      Marionette.triggerMethodOn(view, 'before:render', view);
+    }
+    view.render();
+    if (!view.supportsRenderLifecycle) {
+      Marionette.triggerMethodOn(view, 'render', view);
+    }
+  },
+
   _ensureElement: function() {
     if (!_.isObject(this.el)) {
       this.$el = this.getEl(this.el);
@@ -207,10 +222,11 @@ Marionette.Region = Marionette.Object.extend({
   empty: function(options) {
     var view = this.currentView;
 
-    var preventDestroy = Marionette._getValue(options, 'preventDestroy', this);
+    var emptyOptions = options || {};
+    var preventDestroy  = !!emptyOptions.preventDestroy;
     // If there is no view in the region
     // we should not remove anything
-    if (!view) { return; }
+    if (!view) { return this; }
 
     view.off('destroy', this.empty, this);
     this.triggerMethod('before:empty', view);
@@ -233,15 +249,22 @@ Marionette.Region = Marionette.Object.extend({
   // on the view (if showing a raw Backbone view or a Marionette View)
   _destroyView: function() {
     var view = this.currentView;
+    if (view.isDestroyed) { return; }
 
-    if (view.destroy && !view.isDestroyed) {
+    if (!view.supportsDestroyLifecycle) {
+      Marionette.triggerMethodOn(view, 'before:destroy', view);
+    }
+    if (view.destroy) {
       view.destroy();
-    } else if (view.remove) {
+    } else {
       view.remove();
 
       // appending isDestroyed to raw Backbone View allows regions
       // to throw a ViewDestroyedError for this view
       view.isDestroyed = true;
+    }
+    if (!view.supportsDestroyLifecycle) {
+      Marionette.triggerMethodOn(view, 'destroy', view);
     }
   },
 
@@ -250,6 +273,10 @@ Marionette.Region = Marionette.Object.extend({
   // and will not replace the current HTML for the `el`
   // of the region.
   attachView: function(view) {
+    if (this.currentView) {
+      delete this.currentView._parent;
+    }
+    view._parent = this;
     this.currentView = view;
     return this;
   },

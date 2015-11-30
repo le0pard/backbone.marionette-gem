@@ -24,6 +24,7 @@ will provide features such as `onShow` callbacks, etc. Please see
   * [CollectionView's `childViewEventPrefix`](#collectionviews-childvieweventprefix)
   * [CollectionView's `childEvents`](#collectionviews-childevents)
   * [CollectionView's `buildChildView`](#collectionviews-buildchildview)
+  * [CollectionView's `removeChildView`](#collectionviews-removechildview)
   * [CollectionView's `addChild`](#collectionviews-addchild)
   * [CollectionView's `reorderOnSort`](#collectionviews-reorderonsort)
 * [CollectionView's `emptyView`](#collectionviews-emptyview)
@@ -54,6 +55,7 @@ will provide features such as `onShow` callbacks, etc. Please see
   * ["childview:\*" event bubbling from child views](#childview-event-bubbling-from-child-views)
   * ["before:render:collection" event](#beforerendercollection-event)
   * ["render:collection" event](#rendercollection-event)
+* [CollectionView Child View Events](#collectionview-child-view-events)
 * [CollectionView render](#collectionview-render)
 * [CollectionView: Automatic Rendering](#collectionview-automatic-rendering)
 * [CollectionView: Re-render Collection](#collectionview-re-render-collection)
@@ -127,7 +129,9 @@ var MyCollectionView = Marionette.CollectionView.extend({
   }
 });
 
-var collectionView = new MyCollectionView();
+var collectionView = new MyCollectionView({
+  collection: new Backbone.Collection()
+});
 var foo = new FooBar({
   isFoo: true
 });
@@ -212,16 +216,16 @@ in the constructor function call, to get a view instance.
 
 ### CollectionView's `childEvents`
 
-You can specify a `childEvents` hash or method which allows you to capture all bubbling childEvents without having to manually set bindings. The keys of the hash can either be a function or a string that is the name of a method on the collection view.
+A `childEvents` hash or method permits handling of child view events without manually setting bindings. The values of the hash can either be a function or a string method name on the collection view.
 
 ```js
 // childEvents can be specified as a hash...
 var MyCollectionView = Marionette.CollectionView.extend({
 
-  // This callback will be called whenever a child is rendered or emits a `render` event
   childEvents: {
+    // This callback will be called whenever a child is rendered or emits a `render` event
     render: function() {
-      console.log("a childView has been rendered");
+      console.log('A child view has been rendered.');
     }
   }
 });
@@ -233,33 +237,53 @@ var MyCollectionView = Marionette.CollectionView.extend({
     return {
       render: this.onChildRendered
     }
+  },
+
+  onChildRendered: function () {
+    console.log('A child view has been rendered.');
+  }
 });
 ```
 
-This also works for custom events that you might fire on your child views.
+`childEvents` also catches custom events fired by a child view.  Take note that the first argument to a `childEvents` handler is the child view itself.
 
 ```js
 // The child view fires a custom event, `show:message`
 var ChildView = Marionette.ItemView.extend({
+
+  // Events hash defines local event handlers that in turn may call `triggerMethod`.
   events: {
-    'click .button': 'showMessage'
+    'click .button': 'onClickButton'
   },
 
-  showMessage: function () {
-    console.log('The button was clicked.');
+  // Triggers hash converts DOM events directly to view events catchable on the parent.
+  triggers: {
+    'submit form': 'submit:form'
+  },
 
-    this.triggerMethod('show:message');
+  onClickButton: function () {
+    // Both `trigger` and `triggerMethod` events will be caught by parent.
+    this.trigger('show:message', 'foo');
+    this.triggerMethod('show:message', 'bar');
   }
 });
 
-// The parent uses childEvents to catch that custom event on the child view
+// The parent uses childEvents to catch the child view's custom event
 var ParentView = Marionette.CollectionView.extend({
+
   childView: ChildView,
 
   childEvents: {
-    'show:message': function () {
-      console.log('The show:message event bubbled up to the parent.');
-    }
+    'show:message': 'onChildShowMessage',
+    'submit:form': 'onChildSubmitForm'
+  },
+
+  onChildShowMessage: function (childView, message) {
+    console.log('A child view fired show:message with ' + message);
+  },
+
+  onChildSubmitForm: function (childView) {
+    console.log('A child view fired submit:form');
   }
 });
 ```
@@ -280,6 +304,28 @@ buildChildView: function(child, ChildViewClass, childViewOptions){
   // return it
   return view;
 },
+```
+
+### CollectionView's `removeChildView`
+
+Remove a specific view instance and destroy it. This function also updates the indices of later views in the collection in order to keep the children in sync with the collection.
+
+```js
+// add some views to a CollectionView
+var myCollectionView = new MyCollectionView({
+  collection: new Backbone.Collection([fooModel, barModel]);
+});
+
+myCollectionView.render();
+
+var myView = myCollectionView.children.findByModel(foo);
+
+// remove a child view myView
+myCollectionView.removeChildView(myView);
+
+// check if the removed view still exist
+console.log(myCollectionView.children.findByModel(fooModel)); // return undefined
+console.log(myCollectionView.children.findByModel(barModel)); // return a childView bar
 ```
 
 ### CollectionView's `addChild`
@@ -740,7 +786,28 @@ The `before:render:collection` event is triggered before the `collectionView`'s 
 
 ### render:collection event
 
-The `render:collection` event is triggered after a `collectionView`'s children have been rendered and buffered. It differs from the `collectionViews`'s `render` event in that it happens __only__ if the `collection` is not not empty.
+The `render:collection` event is triggered after a `collectionView`'s children have been rendered and buffered. It differs from the `collectionViews`'s `render` event in that it happens __only__ if the `collection` is not empty.
+
+## CollectionView Child View Events
+
+The following events are raised on child views during rendering and destruction of child views, which is consistent with the view lifecycle experienced during `Region#show`.
+
+* `before:render` / `onBeforeRender` - Called before the view is rendered.
+* `render` / `onRender` - Called after the view is rendered, but before it is attached to the DOM.
+* `before:show` / `onBeforeShow` - Called after the view has been rendered, but before it has been bound to the CollectionView.
+* `before:attach` / `onBeforeAttach` - Called before the view is attached to the DOM.  This will not fire if the CollectionView itself is not attached.
+* `attach` / `onAttach` - Called after the view is attached to the DOM.  This will not fire if the CollectionView itself is not attached.
+* `show` / `onShow` - Called when the view has been rendered and bound to the CollectionView.
+* `dom:refresh` / `onDomRefresh` - Called when the view is both rendered and shown, but only if it is attached to the DOM.  This will not fire if the CollectionView itself is not attached.
+* `before:destroy` / `onBeforeDestroy` - Called before destroying a view.
+* `destroy` / `onDestroy` - Called after destroying a view.
+
+Note: `render`, `destroy`, and `dom:refresh` are triggered on pure Backbone Views during child view rendering, but for a complete implementation of these events the Backbone View should fire `render` within `render()` and `destroy` within `remove()` as well as set the following flags:
+
+```js
+view.supportsRenderLifecycle = true;
+view.supportsDestroyLifecycle = true;
+```
 
 ## CollectionView render
 
