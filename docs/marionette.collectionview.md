@@ -616,7 +616,7 @@ myView.on("render", function(){
   alert("the collection view was rendered!");
 });
 
-myView.on("collection:rendered", function(){
+myView.on("render:collection", function(){
   alert("the collection view was rendered!");
 });
 
@@ -949,7 +949,7 @@ var cv = new Marionette.CollectionView({
 CollectionView allows for a custom `viewComparator` option if you want your CollectionView's children to be rendered with a different sort order than the underlying Backbone collection uses.
 
 ```js
-  var cv = new MarionetteCollectionView({
+  var cv = new Marionette.CollectionView({
     collection: someCollection,
     viewComparator: 'otherFieldToSortOn'
   });
@@ -985,7 +985,7 @@ and a falsey value if it should not.
   cv.render();
 
   // change the filter
-  cv.filter = function (child, index, collection) {
+  cv.options.filter = function (child, index, collection) {
     return child.get('value') % 2 !== 0;
   };
 
@@ -993,9 +993,7 @@ and a falsey value if it should not.
   cv.render();
 
   // remove the filter
-  // note that using `delete cv.filter` will cause the prototype's filter to be used
-  // which may be undesirable
-  cv.filter = null;
+  cv.options.filter = null;
 
   // renders all views
   cv.render();
